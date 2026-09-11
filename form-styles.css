@@ -42,7 +42,7 @@ html, body {
 }
 
 button { font-family: inherit; }
-input, textarea, select { font-family: inherit; font-size: 16px; } /* 16px prevents iOS zoom on focus */
+input, textarea, select { font-family: inherit; font-size: 16px; }
 
 .spin { animation: spin 0.9s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -121,7 +121,7 @@ input, textarea, select { font-family: inherit; font-size: 16px; } /* 16px preve
 }
 
 /* =========================================================
-   PROGRESS RAIL (desktop sidebar)
+   PROGRESS RAIL
    ========================================================= */
 .rail {
   width: var(--rail-width);
@@ -187,9 +187,6 @@ input, textarea, select { font-family: inherit; font-size: 16px; } /* 16px preve
 .rail-active .rail-num { border-color: var(--accent); color: var(--accent); }
 .rail-visited:hover { color: var(--text-dim); background: var(--surface-raised); }
 
-/* =========================================================
-   MOBILE PROGRESS
-   ========================================================= */
 .mobile-progress { display: none; margin-bottom: 18px; }
 .mobile-progress-top {
   display: flex;
@@ -534,7 +531,7 @@ input, textarea, select { font-family: inherit; font-size: 16px; } /* 16px preve
 }
 
 /* =========================================================
-   RESPONSIVE — TABLET
+   RESPONSIVE
    ========================================================= */
 @media (max-width: 900px) {
   .shell { gap: 28px; padding: 28px 20px 60px; }
@@ -542,9 +539,6 @@ input, textarea, select { font-family: inherit; font-size: 16px; } /* 16px preve
   :root { --rail-width: 200px; }
 }
 
-/* =========================================================
-   RESPONSIVE — MOBILE
-   ========================================================= */
 @media (max-width: 720px) {
   .rail { display: none; }
   .mobile-progress { display: block; }
@@ -578,9 +572,6 @@ input, textarea, select { font-family: inherit; font-size: 16px; } /* 16px preve
   .file-chip span { max-width: 120px; }
 }
 
-/* =========================================================
-   RESPONSIVE — SMALL PHONES
-   ========================================================= */
 @media (max-width: 380px) {
   .step-title { font-size: 20px; }
   .card { padding: 18px 14px; }
@@ -589,9 +580,6 @@ input, textarea, select { font-family: inherit; font-size: 16px; } /* 16px preve
   .btn-primary, .btn-ghost { font-size: 12.5px; padding: 11px 14px; }
 }
 
-/* =========================================================
-   REDUCED MOTION
-   ========================================================= */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

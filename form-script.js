@@ -125,16 +125,19 @@ const BUDGET_QUESTIONS = [
   { id: "budget", section: "Budget", question: "What is your estimated budget?", description: "A range is fine — this just helps us scope the right solution.", type: "single_choice", required: true, options: ["Under KSh 10,000","KSh 10,000 – 25,000","KSh 25,000 – 50,000","KSh 50,000 – 100,000","KSh 100,000+","I'm not sure yet"] },
 ];
 
+/* --------------------------------------------------------------------- */
+/*  CLIENT FIELDS — neutral placeholders that work for any visitor.      */
+/* --------------------------------------------------------------------- */
 const CLIENT_FIELDS = [
-  { id: "full_name", label: "Full name", type: "text", required: true, placeholder: "Terrence Ndegwa" },
-  { id: "business_name", label: "Business / organization name", type: "text", required: true, placeholder: "Example Company" },
-  { id: "email", label: "Email", type: "email", required: true, placeholder: "you@example.com" },
-  { id: "phone", label: "Phone / WhatsApp", type: "text", required: true, placeholder: "+254 7xx xxx xxx" },
-  { id: "website", label: "Website", type: "url", required: false, placeholder: "https://" },
-  { id: "social", label: "Social media links", type: "text", required: false, placeholder: "@yourbusiness" },
-  { id: "location", label: "Business location", type: "text", required: true, placeholder: "Nairobi, Kenya" },
-  { id: "industry", label: "Industry", type: "text", required: true, placeholder: "e.g. Hospitality, Retail, Tech" },
-  { id: "description", label: "Short description of the business", type: "textarea", required: true, placeholder: "A sentence or two is plenty." },
+  { id: "full_name",     label: "Full name",                          type: "text",     required: true,  placeholder: "Jane Doe" },
+  { id: "business_name", label: "Business / organization name",       type: "text",     required: true,  placeholder: "Acme Studio" },
+  { id: "email",         label: "Email",                              type: "email",    required: true,  placeholder: "hello@yourcompany.com" },
+  { id: "phone",         label: "Phone / WhatsApp",                   type: "text",     required: true,  placeholder: "+254 700 000 000" },
+  { id: "website",       label: "Website",                            type: "url",      required: false, placeholder: "https://yourcompany.com" },
+  { id: "social",        label: "Social media links",                 type: "text",     required: false, placeholder: "@yourhandle" },
+  { id: "location",      label: "Business location",                  type: "text",     required: true,  placeholder: "City, Country" },
+  { id: "industry",      label: "Industry",                           type: "text",     required: true,  placeholder: "e.g. Hospitality, Retail, Tech" },
+  { id: "description",   label: "Short description of the business",  type: "textarea", required: true,  placeholder: "A sentence or two about what you do." },
 ];
 
 /* ======================================================================= */
@@ -245,7 +248,6 @@ async function sendBrief({ projectId, clientInfo, selectedServices, answers, ste
   return data;
 }
 
-/* ---- localStorage wrapper ---- */
 const storage = {
   get(key) {
     try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; }
@@ -819,7 +821,6 @@ function reviewRow(label, value) {
   '</div>';
 }
 
-/* ---- inline SVG icons ---- */
 function svg(path, size, stroke) {
   return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="' + (stroke || 2) + '" stroke-linecap="round" stroke-linejoin="round">' + path + '</svg>';
 }
