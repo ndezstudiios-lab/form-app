@@ -186,26 +186,125 @@ function formatAnswerValue(v) {
   return v;
 }
 
+/* Friendly short labels for each question, used in the email body. */
+const QUESTION_LABELS = {
+  // Social
+  platforms: "Platforms",
+  social_goals: "Goals",
+  content_types: "Content Style",
+  post_frequency: "Posting Frequency",
+  has_content_assets: "Existing Photos/Videos",
+  content_creator: "Content Creation",
+  admired_accounts: "Accounts/Brands to Admire",
+
+  // Project details
+  goal: "Main Goal",
+  problem: "Problem to Solve",
+  success: "What Would Make the Project Successful",
+  has_deadline: "Deadline",
+  target_date: "Target Date",
+  deadline_reason: "Why This Deadline Matters",
+
+  // Budget
+  budget: "Estimated Budget",
+
+  // Brand
+  business_name: "Business Name",
+  business_does: "What the Business Does",
+  products_services: "Products / Services",
+  mission: "Mission",
+  vision: "Vision",
+  target_audience: "Target Audience",
+  problem_solved: "Problem Solved",
+  customer_type: "Customer Type",
+  competitors: "Competitors",
+  differentiation: "Differentiation",
+  brand_memory: "Brand Memory",
+  personality: "Brand Personality",
+  has_brand: "Has Existing Brand",
+  brand_partial_elements: "Existing Brand Elements",
+
+  // Logo
+  logo_communicate: "What the Logo Should Communicate",
+  logo_style: "Preferred Logo Style",
+  logo_symbols: "Symbols / Ideas",
+  logo_avoid: "Styles to Avoid",
+  logo_usage: "Primary Logo Usage",
+  has_guidelines: "Has Brand Guidelines",
+  logo_examples: "Logo Examples",
+
+  // Graphic
+  design_type: "Design Type",
+  design_purpose: "Design Purpose",
+  design_quantity: "Quantity",
+  design_must_include: "Must Include",
+  design_dimensions: "Dimensions",
+  design_usage_location: "Usage Location",
+  has_references: "Has References",
+  references_like: "What You Like About Them",
+  avoid_styles: "Styles to Avoid",
+
+  // Web
+  website_purpose: "Website Purpose",
+  visitor_action: "Desired Visitor Action",
+  pages: "Pages Needed",
+  features: "Features Needed",
+  existing_assets: "Existing Assets",
+  has_existing_website: "Has Existing Website",
+  current_website_url: "Current Website",
+  current_website_like: "What You Like",
+  current_website_fix: "What Needs Fixing",
+  liked_websites: "Websites You Like",
+  liked_websites_why: "Why You Like Them",
+  avoid_websites: "Websites to Avoid",
+
+  // Other
+  other_description: "Project Description",
+};
+
 function buildBriefText({ projectId, clientInfo, selectedServices, answers, steps }) {
   const lines = [];
-  lines.push("NEW PROJECT BRIEF — " + projectId, "");
-  lines.push("CLIENT");
-  CLIENT_FIELDS.forEach((f) => lines.push(f.label + ": " + (clientInfo[f.id] || "—")));
-  lines.push("", "SERVICES REQUESTED");
+
+  // ---- Header ----
+  lines.push("NEW PROJECT BRIEF");
+  lines.push("Project ID: " + projectId);
+  lines.push("");
+
+  // ---- Client block ----
+  lines.push("Client Information");
+  CLIENT_FIELDS.forEach((f) => {
+    const val = clientInfo[f.id];
+    if (val) lines.push("*" + f.label + ":* " + val);
+  });
+  lines.push("");
+
+  // ---- Services ----
   const serviceNames = selectedServices
     .map((id) => (SERVICE_CARDS.find((c) => c.id === id) || {}).name)
     .filter(Boolean);
-  lines.push(serviceNames.join(", ") || "—");
+  if (serviceNames.length > 0) {
+    lines.push("Services Requested");
+    lines.push("*Selected:* " + serviceNames.join(", "));
+    lines.push("");
+  }
+
+  // ---- Each question section ----
   steps.filter((s) => s.kind === "questions").forEach((s) => {
     const visible = s.questions.filter((q) => isVisible(q, answers) && !isEmpty(answers[q.id]));
     if (visible.length === 0) return;
-    lines.push("", s.title.toUpperCase());
+
+    lines.push("**" + s.title + "**");
+
     visible.forEach((q) => {
-      lines.push(q.question + " " + formatAnswerValue(answers[q.id]));
+      const label = QUESTION_LABELS[q.id] || q.question;
+      const value = formatAnswerValue(answers[q.id]);
+      lines.push("*" + label + ":* " + value);
     });
+
+    lines.push("");
   });
 
-  lines.push("", "— Sent from the Ndezstudiio project intake form —");
+  lines.push("— Sent from the Ndezstudiio project intake form —");
   return lines.join("\n");
 }
 
