@@ -186,198 +186,28 @@ function formatAnswerValue(v) {
   return v;
 }
 
-/* Friendly short labels for each question, used in the email body. */
-const QUESTION_LABELS = {
-  // Social
-  platforms: "Platforms",
-  social_goals: "Goals",
-  content_types: "Content Style",
-  post_frequency: "Posting Frequency",
-  has_content_assets: "Existing Photos/Videos",
-  content_creator: "Content Creation",
-  admired_accounts: "Accounts/Brands to Admire",
-
-  // Project details
-  goal: "Main Goal",
-  problem: "Problem to Solve",
-  success: "What Would Make the Project Successful",
-  has_deadline: "Deadline",
-  target_date: "Target Date",
-  deadline_reason: "Why This Deadline Matters",
-
-  // Budget
-  budget: "Estimated Budget",
-
-  // Brand
-  business_name: "Business Name",
-  business_does: "What the Business Does",
-  products_services: "Products / Services",
-  mission: "Mission",
-  vision: "Vision",
-  target_audience: "Target Audience",
-  problem_solved: "Problem Solved",
-  customer_type: "Customer Type",
-  competitors: "Competitors",
-  differentiation: "Differentiation",
-  brand_memory: "Brand Memory",
-  personality: "Brand Personality",
-  has_brand: "Has Existing Brand",
-  brand_partial_elements: "Existing Brand Elements",
-
-  // Logo
-  logo_communicate: "What the Logo Should Communicate",
-  logo_style: "Preferred Logo Style",
-  logo_symbols: "Symbols / Ideas",
-  logo_avoid: "Styles to Avoid",
-  logo_usage: "Primary Logo Usage",
-  has_guidelines: "Has Brand Guidelines",
-  logo_examples: "Logo Examples",
-
-  // Graphic
-  design_type: "Design Type",
-  design_purpose: "Design Purpose",
-  design_quantity: "Quantity",
-  design_must_include: "Must Include",
-  design_dimensions: "Dimensions",
-  design_usage_location: "Usage Location",
-  has_references: "Has References",
-  references_like: "What You Like About Them",
-  avoid_styles: "Styles to Avoid",
-
-  // Web
-  website_purpose: "Website Purpose",
-  visitor_action: "Desired Visitor Action",
-  pages: "Pages Needed",
-  features: "Features Needed",
-  existing_assets: "Existing Assets",
-  has_existing_website: "Has Existing Website",
-  current_website_url: "Current Website",
-  current_website_like: "What You Like",
-  current_website_fix: "What Needs Fixing",
-  liked_websites: "Websites You Like",
-  liked_websites_why: "Why You Like Them",
-  avoid_websites: "Websites to Avoid",
-
-  // Other
-  other_description: "Project Description",
-};
-
 function buildBriefText({ projectId, clientInfo, selectedServices, answers, steps }) {
   const lines = [];
-
-  // ---- Header ----
-  lines.push("NEW PROJECT BRIEF");
-  lines.push("Project ID: " + projectId);
-  lines.push("");
-
-  // ---- Client block ----
-  lines.push("Client Information");
-  CLIENT_FIELDS.forEach((f) => {
-    const val = clientInfo[f.id];
-    if (val) lines.push("*" + f.label + ":* " + val);
-  });
-  lines.push("");
-
-  // ---- Services ----
+  lines.push("NEW PROJECT BRIEF — " + projectId, "");
+  lines.push("CLIENT");
+  CLIENT_FIELDS.forEach((f) => lines.push(f.label + ": " + (clientInfo[f.id] || "—")));
+  lines.push("", "SERVICES REQUESTED");
   const serviceNames = selectedServices
     .map((id) => (SERVICE_CARDS.find((c) => c.id === id) || {}).name)
     .filter(Boolean);
-  if (serviceNames.length > 0) {
-    lines.push("Services Requested");
-    lines.push("*Selected:* " + serviceNames.join(", "));
-    lines.push("");
-  }
+  lines.push(serviceNames.join(", ") || "—");
 
-  // ---- Each question section ----
   steps.filter((s) => s.kind === "questions").forEach((s) => {
     const visible = s.questions.filter((q) => isVisible(q, answers) && !isEmpty(answers[q.id]));
     if (visible.length === 0) return;
-
-    lines.push("**" + s.title + "**");
-
+    lines.push("", s.title.toUpperCase());
     visible.forEach((q) => {
-      const label = QUESTION_LABELS[q.id] || q.question;
-      const value = formatAnswerValue(answers[q.id]);
-      lines.push("*" + label + ":* " + value);
+      lines.push(q.question + " " + formatAnswerValue(answers[q.id]));
     });
-
-    lines.push("");
   });
 
-  lines.push("— Sent from the Ndezstudiio project intake form —");
+  lines.push("", "— Sent from the Ndezstudiio project intake form —");
   return lines.join("\n");
-}
-
-function buildBriefHtml({ projectId, clientInfo, selectedServices, answers, steps }) {
-  const esc2 = (s) => {
-    if (s === undefined || s === null) return "";
-    return String(s)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;");
-  };
-
-  const serviceNames = selectedServices
-    .map((id) => (SERVICE_CARDS.find((c) => c.id === id) || {}).name)
-    .filter(Boolean);
-
-  let html = "";
-  html += '<div style="font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#1a1a1a;max-width:680px;">';
-
-  // Header banner
-  html += '<div style="background:#0C0D10;color:#F3F1EC;padding:22px 26px;border-radius:10px;margin-bottom:22px;">' +
-    '<div style="font-size:13px;letter-spacing:0.08em;text-transform:uppercase;color:#9C9EA8;margin-bottom:6px;">New Project Brief</div>' +
-    '<div style="font-size:20px;font-weight:700;color:#F3F1EC;">' + esc2(projectId) + '</div>' +
-    '</div>';
-
-  // Client block
-  html += '<h2 style="font-size:13px;letter-spacing:0.08em;text-transform:uppercase;color:#7C5CFF;margin:26px 0 10px;padding-bottom:6px;border-bottom:2px solid #EDEAFB;">Client</h2>';
-  html += '<table style="width:100%;border-collapse:collapse;margin-bottom:8px;">';
-  CLIENT_FIELDS.forEach((f) => {
-    const val = clientInfo[f.id];
-    if (!val) return;
-    html += '<tr>' +
-      '<td style="padding:7px 12px 7px 0;vertical-align:top;color:#63656F;font-size:13.5px;width:38%;">' + esc2(f.label) + '</td>' +
-      '<td style="padding:7px 0;vertical-align:top;font-weight:600;color:#1a1a1a;">' + esc2(val) + '</td>' +
-      '</tr>';
-  });
-  html += '</table>';
-
-  // Services as pills
-  if (serviceNames.length > 0) {
-    html += '<h2 style="font-size:13px;letter-spacing:0.08em;text-transform:uppercase;color:#7C5CFF;margin:26px 0 10px;padding-bottom:6px;border-bottom:2px solid #EDEAFB;">Services Requested</h2>';
-    html += '<div style="margin-bottom:8px;">';
-    serviceNames.forEach((n) => {
-      html += '<span style="display:inline-block;background:#EDEAFB;color:#5B3FE0;border-radius:999px;padding:5px 14px;font-size:13px;font-weight:600;margin:0 6px 6px 0;">' + esc2(n) + '</span>';
-    });
-    html += '</div>';
-  }
-
-  // Question sections
-  steps.filter((s) => s.kind === "questions").forEach((s) => {
-    const visible = s.questions.filter((q) => isVisible(q, answers) && !isEmpty(answers[q.id]));
-    if (visible.length === 0) return;
-
-    html += '<h2 style="font-size:13px;letter-spacing:0.08em;text-transform:uppercase;color:#7C5CFF;margin:26px 0 10px;padding-bottom:6px;border-bottom:2px solid #EDEAFB;">' + esc2(s.title) + '</h2>';
-
-    visible.forEach((q) => {
-      const v = formatAnswerValue(answers[q.id]);
-      html += '<div style="margin-bottom:14px;">' +
-        '<div style="color:#63656F;font-size:13px;margin-bottom:3px;">' + esc2(q.question) + '</div>' +
-        '<div style="color:#1a1a1a;font-size:15px;font-weight:500;white-space:pre-wrap;">' + esc2(v) + '</div>' +
-        '</div>';
-    });
-  });
-
-  // Footer
-  html += '<div style="margin-top:32px;padding-top:18px;border-top:1px solid #E5E5E5;color:#9C9EA8;font-size:12.5px;text-align:center;">' +
-    'Sent from the Ndezstudiio project intake form' +
-    '</div>';
-
-  html += '</div>';
-  return html;
 }
 
 function buildMailtoLink({ projectId, clientInfo, selectedServices, answers, steps }) {
