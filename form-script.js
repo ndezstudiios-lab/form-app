@@ -389,7 +389,6 @@ function buildMailtoLink({ projectId, clientInfo, selectedServices, answers, ste
 
 async function sendBrief({ projectId, clientInfo, selectedServices, answers, steps }) {
   const body = buildBriefText({ projectId, clientInfo, selectedServices, answers, steps });
-  const htmlBody = buildBriefHtml({ projectId, clientInfo, selectedServices, answers, steps });
   const serviceNames = selectedServices
     .map((id) => (SERVICE_CARDS.find((c) => c.id === id) || {}).name)
     .filter(Boolean)
@@ -412,7 +411,6 @@ async function sendBrief({ projectId, clientInfo, selectedServices, answers, ste
       "Industry": clientInfo.industry || "—",
       "Services": serviceNames,
       "Full brief": body,
-      html: htmlBody,
     }),
   });
   const data = await res.json().catch(() => ({}));
