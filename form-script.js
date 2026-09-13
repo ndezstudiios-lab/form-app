@@ -4,8 +4,11 @@
 
 const AGENCY_EMAIL = "ndezstudiios@gmail.com";
 
-// Web3Forms access key — get one free at https://web3forms.com
-const WEB3FORMS_ACCESS_KEY = "9435873c-63af-4fc0-8d45-be0c3232443e";
+/* ---- EmailJS credentials ---- */
+const EMAILJS_PUBLIC_KEY       = "444nAMoJBgUxvLWnF";
+const EMAILJS_SERVICE_ID       = "service_s1yxy9c";
+const EMAILJS_NOTIFY_TEMPLATE  = "template_mnlaa71";   // notification → YOU
+const EMAILJS_CONFIRM_TEMPLATE = "template_27daicp";   // confirmation → CLIENT
 
 const DRAFT_KEY = "ndez-draft-v1";
 
@@ -125,9 +128,6 @@ const BUDGET_QUESTIONS = [
   { id: "budget", section: "Budget", question: "What is your estimated budget?", description: "A range is fine — this just helps us scope the right solution.", type: "single_choice", required: true, options: ["Under KSh 10,000","KSh 10,000 – 25,000","KSh 25,000 – 50,000","KSh 50,000 – 100,000","KSh 100,000+","I'm not sure yet"] },
 ];
 
-/* --------------------------------------------------------------------- */
-/*  CLIENT FIELDS — neutral placeholders that work for any visitor.      */
-/* --------------------------------------------------------------------- */
 const CLIENT_FIELDS = [
   { id: "full_name",     label: "Full name",                          type: "text",     required: true,  placeholder: "Jane Doe" },
   { id: "business_name", label: "Business / organization name",       type: "text",     required: true,  placeholder: "Acme Studio" },
@@ -188,25 +188,46 @@ function formatAnswerValue(v) {
 
 function buildBriefText({ projectId, clientInfo, selectedServices, answers, steps }) {
   const lines = [];
-  lines.push("NEW PROJECT BRIEF — " + projectId, "");
-  lines.push("CLIENT");
-  CLIENT_FIELDS.forEach((f) => lines.push(f.label + ": " + (clientInfo[f.id] || "—")));
-  lines.push("", "SERVICES REQUESTED");
+  const hr = "────────────────────────────────────────────";
+  const pad = (s, n) => (s + " ".repeat(n)).slice(0, n);
+
+  lines.push("NEW PROJECT BRIEF");
+  lines.push(hr);
+  lines.push("");
+  lines.push("Project ID:  " + projectId);
+  lines.push("");
+
+  lines.push("CLIENT INFORMATION");
+  lines.push(hr);
+  CLIENT_FIELDS.forEach((f) => {
+    lines.push("  " + pad(f.label, 32) + "  " + (clientInfo[f.id] || "—"));
+  });
+  lines.push("");
+
   const serviceNames = selectedServices
     .map((id) => (SERVICE_CARDS.find((c) => c.id === id) || {}).name)
     .filter(Boolean);
-  lines.push(serviceNames.join(", ") || "—");
+  lines.push("SERVICES REQUESTED");
+  lines.push(hr);
+  if (serviceNames.length === 0) lines.push("  —");
+  else serviceNames.forEach((n) => lines.push("  • " + n));
+  lines.push("");
 
   steps.filter((s) => s.kind === "questions").forEach((s) => {
     const visible = s.questions.filter((q) => isVisible(q, answers) && !isEmpty(answers[q.id]));
     if (visible.length === 0) return;
-    lines.push("", s.title.toUpperCase());
+    lines.push(s.title.toUpperCase());
+    lines.push(hr);
     visible.forEach((q) => {
-      lines.push(q.question + " " + formatAnswerValue(answers[q.id]));
+      lines.push("");
+      lines.push("  " + q.question);
+      lines.push("  → " + formatAnswerValue(answers[q.id]));
     });
+    lines.push("");
   });
 
-  lines.push("", "— Sent from the Ndezstudiio project intake form —");
+  lines.push(hr);
+  lines.push("Sent from the Ndezstudiio project intake form");
   return lines.join("\n");
 }
 
@@ -218,34 +239,44 @@ function buildMailtoLink({ projectId, clientInfo, selectedServices, answers, ste
 }
 
 async function sendBrief({ projectId, clientInfo, selectedServices, answers, steps }) {
-  const body = buildBriefText({ projectId, clientInfo, selectedServices, answers, steps });
+  const briefText = buildBriefText({ projectId, clientInfo, selectedServices, answers, steps });
   const serviceNames = selectedServices
     .map((id) => (SERVICE_CARDS.find((c) => c.id === id) || {}).name)
     .filter(Boolean)
     .join(", ") || "—";
 
-  const res = await fetch("https://api.web3forms.com/submit", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({
-      access_key: WEB3FORMS_ACCESS_KEY,
-      subject: "New project brief — " + projectId + " — " + (clientInfo.business_name || clientInfo.full_name || ""),
-      from_name: "Ndezstudiio Intake",
-      email: clientInfo.email || "",
-      "Project ID": projectId,
-      "Client name": clientInfo.full_name || "—",
-      "Business": clientInfo.business_name || "—",
-      "Email": clientInfo.email || "—",
-      "Phone": clientInfo.phone || "—",
-      "Location": clientInfo.location || "—",
-      "Industry": clientInfo.industry || "—",
-      "Services": serviceNames,
-      "Full brief": body,
-    }),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok || !data.success) throw new Error(data.message || "Submission failed");
-  return data;
+  const templateParams = {
+    project_id:    projectId,
+    full_name:     clientInfo.full_name || "—",
+    business_name: clientInfo.business_name || "—",
+    email:         clientInfo.email || "",
+    phone:         clientInfo.phone || "—",
+    location:      clientInfo.location || "—",
+    industry:      clientInfo.industry || "—",
+    services:      serviceNames,
+    budget:        answers.budget || "—",
+    full_brief:    briefText,
+  };
+
+  const send = (templateId) =>
+    fetch("https://api.emailjs.com/api/v1.0/email/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        service_id:      EMAILJS_SERVICE_ID,
+        template_id:     templateId,
+        user_id:         EMAILJS_PUBLIC_KEY,
+        template_params: templateParams,
+      }),
+    }).then((r) => {
+      if (!r.ok) throw new Error("EmailJS request failed (" + r.status + ")");
+      return r;
+    });
+
+  await Promise.all([
+    send(EMAILJS_NOTIFY_TEMPLATE),
+    send(EMAILJS_CONFIRM_TEMPLATE),
+  ]);
 }
 
 const storage = {
@@ -423,15 +454,6 @@ async function submit() {
     submittedAt: new Date().toISOString(),
   };
 
-  const configured = WEB3FORMS_ACCESS_KEY && WEB3FORMS_ACCESS_KEY !== "YOUR_WEB3FORMS_ACCESS_KEY_HERE";
-
-  if (!configured) {
-    state.submitState = "error";
-    state.submitError = "Email delivery isn't configured yet. Use the button below to send it from your own email app.";
-    render();
-    return;
-  }
-
   try {
     await sendBrief({
       projectId: state.projectId,
@@ -594,7 +616,7 @@ function render() {
     if (state.submitState === "sent") {
       icon = '<div class="confirm-icon">' + checkCircleIcon(28) + '</div>';
       title = "Your project brief has been submitted.";
-      body = 'It landed in our inbox at <strong style="color:var(--text)">' + esc(AGENCY_EMAIL) + '</strong>. We\'ll review it and get back to you shortly.';
+      body = 'We\'ve received it and a confirmation email is on its way to <strong style="color:var(--text)">' + esc(state.clientInfo.email || "you") + '</strong>. We\'ll get back to you shortly.';
       actions = '<button class="btn-primary" id="newBtn">' + rotateIcon() + ' Start a new brief</button>';
     } else if (state.submitState === "sending") {
       icon = '<svg class="spin" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>';
