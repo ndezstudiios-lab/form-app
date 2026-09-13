@@ -4,43 +4,10 @@
 
 const AGENCY_EMAIL = "ndezstudiios@gmail.com";
 
-/* ---- EmailJS credentials ---- */
-const EMAILJS_PUBLIC_KEY       = "444nAMoJBgUxvLWnF";
-const EMAILJS_SERVICE_ID       = "service_s1yxy9c";
-const EMAILJS_NOTIFY_TEMPLATE  = "template_mnlaa71";   // notification → YOU
-const EMAILJS_CONFIRM_TEMPLATE = "template_27daicp";   // confirmation → CLIENT
-
-/* If you set this to false, the form will skip EmailJS and open the user's
-   mail client instead. Useful for debugging. */
-const USE_EMAILJS = true;
+/* Web3Forms access key (from your dashboard) */
+const WEB3FORMS_ACCESS_KEY = "9435873c-63af-4fc0-8d45-be0c3232443e";
 
 const DRAFT_KEY = "ndez-draft-v1";
-
-/* ======================================================================= */
-/*  EMAILJS SDK LOADER                                                     */
-/*  Loads the official SDK from CDN the first time we send. Avoids        */
-/*  the raw-fetch 400 problems and auto-handles origin headers.           */
-/* ======================================================================= */
-
-let emailjsReady = null;
-
-function loadEmailJS() {
-  if (emailjsReady) return emailjsReady;
-  emailjsReady = new Promise((resolve, reject) => {
-    if (window.emailjs) return resolve(window.emailjs);
-    const script = document.createElement("script");
-    script.src = "https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js";
-    script.onload = () => {
-      try {
-        window.emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
-        resolve(window.emailjs);
-      } catch (e) { reject(e); }
-    };
-    script.onerror = () => reject(new Error("Failed to load EmailJS SDK"));
-    document.head.appendChild(script);
-  });
-  return emailjsReady;
-}
 
 /* ======================================================================= */
 /*  DATA LAYER                                                             */
@@ -216,6 +183,9 @@ function formatAnswerValue(v) {
   return v;
 }
 
+/* ----------------------------------------------------------------------- */
+/*  BRIEF TEXT — one clean, readable block for the email body              */
+/* ----------------------------------------------------------------------- */
 function buildBriefText({ projectId, clientInfo, selectedServices, answers, steps }) {
   const lines = [];
   const hr = "────────────────────────────────────────────";
@@ -270,39 +240,23 @@ function buildMailtoLink({ projectId, clientInfo, selectedServices, answers, ste
 
 async function sendBrief({ projectId, clientInfo, selectedServices, answers, steps }) {
   const briefText = buildBriefText({ projectId, clientInfo, selectedServices, answers, steps });
-  const serviceNames = selectedServices
-    .map((id) => (SERVICE_CARDS.find((c) => c.id === id) || {}).name)
-    .filter(Boolean)
-    .join(", ") || "—";
 
-  if (!USE_EMAILJS) {
-    throw new Error("EmailJS is disabled — using manual send.");
-  }
-
-  const emailjs = await loadEmailJS();
-
-  const templateParams = {
-    project_id:    projectId,
-    full_name:     clientInfo.full_name || "—",
-    business_name: clientInfo.business_name || "—",
-    email:         clientInfo.email || "",
-    phone:         clientInfo.phone || "—",
-    location:      clientInfo.location || "—",
-    industry:      clientInfo.industry || "—",
-    services:      serviceNames,
-    budget:        answers.budget || "—",
-    full_brief:    briefText,
-    // EmailJS uses these top-level fields when rendering the "To" and subject
-    to_email:      clientInfo.email || AGENCY_EMAIL,
-    to_name:       clientInfo.full_name || "there",
-    reply_to:      clientInfo.email || AGENCY_EMAIL,
-  };
-
-  // Fire both templates in parallel
-  await Promise.all([
-    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_NOTIFY_TEMPLATE, templateParams),
-    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_CONFIRM_TEMPLATE, templateParams),
-  ]);
+  const res = await fetch("https://api.web3forms.com/submit", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({
+      access_key: WEB3FORMS_ACCESS_KEY,
+      subject: "New project brief — " + projectId + " — " + (clientInfo.business_name || clientInfo.full_name || ""),
+      from_name: "Ndezstudiio Intake",
+      email: clientInfo.email || "",
+      // ONE formatted field is what makes the email readable.
+      // Web3Forms renders its value as the whole body, preserving line breaks.
+      "Project Brief": briefText,
+    }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.success) throw new Error(data.message || "Submission failed");
+  return data;
 }
 
 const storage = {
@@ -642,7 +596,7 @@ function render() {
     if (state.submitState === "sent") {
       icon = '<div class="confirm-icon">' + checkCircleIcon(28) + '</div>';
       title = "Your project brief has been submitted.";
-      body = 'We\'ve received it and a confirmation email is on its way to <strong style="color:var(--text)">' + esc(state.clientInfo.email || "you") + '</strong>. We\'ll get back to you shortly.';
+      body = 'It landed in our inbox at <strong style="color:var(--text)">' + esc(AGENCY_EMAIL) + '</strong>. We\'ll review it and get back to you shortly.';
       actions = '<button class="btn-primary" id="newBtn">' + rotateIcon() + ' Start a new brief</button>';
     } else if (state.submitState === "sending") {
       icon = '<svg class="spin" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>';
