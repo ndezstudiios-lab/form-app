@@ -10,7 +10,37 @@ const EMAILJS_SERVICE_ID       = "service_s1yxy9c";
 const EMAILJS_NOTIFY_TEMPLATE  = "template_mnlaa71";   // notification → YOU
 const EMAILJS_CONFIRM_TEMPLATE = "template_27daicp";   // confirmation → CLIENT
 
+/* If you set this to false, the form will skip EmailJS and open the user's
+   mail client instead. Useful for debugging. */
+const USE_EMAILJS = true;
+
 const DRAFT_KEY = "ndez-draft-v1";
+
+/* ======================================================================= */
+/*  EMAILJS SDK LOADER                                                     */
+/*  Loads the official SDK from CDN the first time we send. Avoids        */
+/*  the raw-fetch 400 problems and auto-handles origin headers.           */
+/* ======================================================================= */
+
+let emailjsReady = null;
+
+function loadEmailJS() {
+  if (emailjsReady) return emailjsReady;
+  emailjsReady = new Promise((resolve, reject) => {
+    if (window.emailjs) return resolve(window.emailjs);
+    const script = document.createElement("script");
+    script.src = "https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js";
+    script.onload = () => {
+      try {
+        window.emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+        resolve(window.emailjs);
+      } catch (e) { reject(e); }
+    };
+    script.onerror = () => reject(new Error("Failed to load EmailJS SDK"));
+    document.head.appendChild(script);
+  });
+  return emailjsReady;
+}
 
 /* ======================================================================= */
 /*  DATA LAYER                                                             */
@@ -245,6 +275,12 @@ async function sendBrief({ projectId, clientInfo, selectedServices, answers, ste
     .filter(Boolean)
     .join(", ") || "—";
 
+  if (!USE_EMAILJS) {
+    throw new Error("EmailJS is disabled — using manual send.");
+  }
+
+  const emailjs = await loadEmailJS();
+
   const templateParams = {
     project_id:    projectId,
     full_name:     clientInfo.full_name || "—",
@@ -256,26 +292,16 @@ async function sendBrief({ projectId, clientInfo, selectedServices, answers, ste
     services:      serviceNames,
     budget:        answers.budget || "—",
     full_brief:    briefText,
+    // EmailJS uses these top-level fields when rendering the "To" and subject
+    to_email:      clientInfo.email || AGENCY_EMAIL,
+    to_name:       clientInfo.full_name || "there",
+    reply_to:      clientInfo.email || AGENCY_EMAIL,
   };
 
-  const send = (templateId) =>
-    fetch("https://api.emailjs.com/api/v1.0/email/send", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        service_id:      EMAILJS_SERVICE_ID,
-        template_id:     templateId,
-        user_id:         EMAILJS_PUBLIC_KEY,
-        template_params: templateParams,
-      }),
-    }).then((r) => {
-      if (!r.ok) throw new Error("EmailJS request failed (" + r.status + ")");
-      return r;
-    });
-
+  // Fire both templates in parallel
   await Promise.all([
-    send(EMAILJS_NOTIFY_TEMPLATE),
-    send(EMAILJS_CONFIRM_TEMPLATE),
+    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_NOTIFY_TEMPLATE, templateParams),
+    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_CONFIRM_TEMPLATE, templateParams),
   ]);
 }
 
