@@ -4,8 +4,9 @@
 
 const AGENCY_EMAIL = "ndezstudiios@gmail.com";
 
-/* Web3Forms access key (from your dashboard) */
-const WEB3FORMS_ACCESS_KEY = "9435873c-63af-4fc0-8d45-be0c3232443e";
+/* ---- Supabase credentials ---- */
+const SUPABASE_URL = "https://eortegvmjednbahfaflt.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVvcnRlZ3ZtamVkbmJhaGZhZmx0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzNDAzMDksImV4cCI6MjEwNDkxNjMwOX0.ANe4IgXkZHtRT-3HQ26tQ6HlPQT2qO6WhCoGJQM-rbA";
 
 const DRAFT_KEY = "ndez-draft-v1";
 
@@ -184,7 +185,7 @@ function formatAnswerValue(v) {
 }
 
 /* ----------------------------------------------------------------------- */
-/*  BRIEF TEXT — one clean, readable block for the email body              */
+/*  BRIEF TEXT — the full readable text used in the dashboard and mailto  */
 /* ----------------------------------------------------------------------- */
 function buildBriefText({ projectId, clientInfo, selectedServices, answers, steps }) {
   const lines = [];
@@ -234,29 +235,58 @@ function buildBriefText({ projectId, clientInfo, selectedServices, answers, step
 function buildMailtoLink({ projectId, clientInfo, selectedServices, answers, steps }) {
   const subject = "New project brief — " + projectId + " — " + (clientInfo.business_name || clientInfo.full_name || "");
   let body = buildBriefText({ projectId, clientInfo, selectedServices, answers, steps });
-  if (body.length > 1800) body = body.slice(0, 1800) + "\n\n[Brief truncated — full details saved under this Project ID.]";
+  if (body.length > 1800) body = body.slice(0, 1800) + "\n\n[Brief truncated — full details saved in the dashboard.]";
   return "mailto:" + AGENCY_EMAIL + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
 }
 
+/* ----------------------------------------------------------------------- */
+/*  SEND TO SUPABASE                                                       */
+/*  No more emails — this writes the submission to the database. The       */
+/*  dashboard reads it from there.                                         */
+/* ----------------------------------------------------------------------- */
 async function sendBrief({ projectId, clientInfo, selectedServices, answers, steps }) {
   const briefText = buildBriefText({ projectId, clientInfo, selectedServices, answers, steps });
+  const serviceNames = selectedServices
+    .map((id) => (SERVICE_CARDS.find((c) => c.id === id) || {}).name)
+    .filter(Boolean);
 
-  const res = await fetch("https://api.web3forms.com/submit", {
+  const payload = {
+    project_id:    projectId,
+    status:        "new",
+    full_name:     clientInfo.full_name || "—",
+    business_name: clientInfo.business_name || "—",
+    email:         clientInfo.email || "",
+    phone:         clientInfo.phone || "—",
+    location:      clientInfo.location || "—",
+    industry:      clientInfo.industry || "—",
+    services:      serviceNames.join(", "),
+    budget:        answers.budget || "—",
+    brief: {
+      clientInfo:    clientInfo,
+      services:      selectedServices,
+      serviceNames:  serviceNames,
+      answers:       answers,
+      briefText:     briefText,
+    },
+    user_agent:    navigator.userAgent,
+  };
+
+  const res = await fetch(SUPABASE_URL + "/rest/v1/submissions", {
     method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({
-      access_key: WEB3FORMS_ACCESS_KEY,
-      subject: "New project brief — " + projectId + " — " + (clientInfo.business_name || clientInfo.full_name || ""),
-      from_name: "Ndezstudiio Intake",
-      email: clientInfo.email || "",
-      // ONE formatted field is what makes the email readable.
-      // Web3Forms renders its value as the whole body, preserving line breaks.
-      "Project Brief": briefText,
-    }),
+    headers: {
+      "apikey":        SUPABASE_ANON_KEY,
+      "Authorization": "Bearer " + SUPABASE_ANON_KEY,
+      "Content-Type":  "application/json",
+      "Prefer":        "return=minimal",
+    },
+    body: JSON.stringify(payload),
   });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok || !data.success) throw new Error(data.message || "Submission failed");
-  return data;
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error("Supabase insert failed (" + res.status + "): " + errText);
+  }
+  return true;
 }
 
 const storage = {
@@ -426,14 +456,6 @@ async function submit() {
   });
   state.mailtoLink = fallback;
 
-  const record = {
-    projectId: state.projectId,
-    clientInfo: state.clientInfo,
-    selectedServices: state.selectedServices,
-    answers: state.answers,
-    submittedAt: new Date().toISOString(),
-  };
-
   try {
     await sendBrief({
       projectId: state.projectId,
@@ -442,13 +464,12 @@ async function submit() {
       answers: state.answers,
       steps,
     });
-    storage.set("submission:" + state.projectId, JSON.stringify(record));
     storage.remove(DRAFT_KEY);
     state.submitState = "sent";
     render();
   } catch (err) {
     state.submitState = "error";
-    state.submitError = err.message || "Could not send automatically.";
+    state.submitError = err.message || "Could not save submission.";
     render();
   }
 }
@@ -596,16 +617,16 @@ function render() {
     if (state.submitState === "sent") {
       icon = '<div class="confirm-icon">' + checkCircleIcon(28) + '</div>';
       title = "Your project brief has been submitted.";
-      body = 'It landed in our inbox at <strong style="color:var(--text)">' + esc(AGENCY_EMAIL) + '</strong>. We\'ll review it and get back to you shortly.';
+      body = 'We\'ve received it and will get back to you shortly. Your reference number is below.';
       actions = '<button class="btn-primary" id="newBtn">' + rotateIcon() + ' Start a new brief</button>';
     } else if (state.submitState === "sending") {
       icon = '<svg class="spin" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>';
       title = "Sending your brief…";
-      body = "One moment while we deliver it.";
+      body = "One moment while we save it.";
       actions = "";
     } else {
       icon = '<div class="confirm-icon error">' + xIcon(28) + '</div>';
-      title = "We couldn't send it automatically.";
+      title = "We couldn't save it.";
       body = esc(state.submitError) + ' You can send it manually instead — your email app will open pre-filled.';
       actions =
         '<button class="btn-ghost" id="mailtoBtn">Open email app</button>' +
