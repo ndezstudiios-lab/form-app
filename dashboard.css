@@ -30,10 +30,14 @@ html, body {
   font-size: 14px; line-height: 1.5;
   min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
 }
 
 button { font-family: inherit; }
 input, textarea, select { font-family: inherit; font-size: 16px; }
+
+.spin { animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 
 /* =========================================================
    HEADER
@@ -49,6 +53,7 @@ input, textarea, select { font-family: inherit; font-size: 16px; }
 .dash-brand {
   font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px;
   display: flex; align-items: center; gap: 8px; letter-spacing: -0.01em;
+  flex-shrink: 0;
 }
 .dash-brand-dot { color: var(--accent); font-size: 10px; }
 .dash-brand-sub {
@@ -56,7 +61,7 @@ input, textarea, select { font-family: inherit; font-size: 16px; }
   color: var(--text-faint); margin-left: 8px; padding-left: 8px;
   border-left: 1px solid var(--border);
 }
-.dash-header-right { display: flex; align-items: center; gap: 12px; }
+.dash-header-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 .dash-live {
   display: inline-flex; align-items: center; gap: 6px;
   font-size: 11px; color: var(--text-faint); letter-spacing: 0.04em;
@@ -75,17 +80,18 @@ input, textarea, select { font-family: inherit; font-size: 16px; }
 }
 .dash-refresh {
   cursor: pointer; display: flex; align-items: center; justify-content: center;
-  width: 32px; height: 32px; border-radius: 8px;
+  width: 34px; height: 34px; border-radius: 8px;
   border: 1px solid var(--border); background: transparent;
   color: var(--text-dim); transition: color 0.15s, border-color 0.15s;
+  flex-shrink: 0;
 }
 .dash-refresh:hover { color: var(--text); border-color: #3A3E4A; }
 .dash-refresh.spinning svg { animation: spin 0.8s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
 .dash-back {
   color: var(--text-dim); text-decoration: none; font-size: 12.5px;
-  padding: 6px 12px; border: 1px solid var(--border); border-radius: 999px;
+  padding: 7px 13px; border: 1px solid var(--border); border-radius: 999px;
   transition: color 0.15s, border-color 0.15s;
+  white-space: nowrap;
 }
 .dash-back:hover { color: var(--text); border-color: #3A3E4A; }
 
@@ -99,12 +105,12 @@ input, textarea, select { font-family: inherit; font-size: 16px; }
    ========================================================= */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 12px; margin-bottom: 24px;
 }
 .stat-card {
   background: var(--surface); border: 1px solid var(--border-soft);
-  border-radius: var(--radius); padding: 18px 18px;
+  border-radius: var(--radius); padding: 18px;
   display: flex; flex-direction: column; gap: 6px;
   transition: border-color 0.15s;
 }
@@ -128,7 +134,7 @@ input, textarea, select { font-family: inherit; font-size: 16px; }
   display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
   margin-bottom: 16px;
 }
-.search-wrap { position: relative; flex: 1; min-width: 200px; }
+.search-wrap { position: relative; flex: 1 1 240px; min-width: 0; }
 .search-wrap svg {
   position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
   color: var(--text-faint); pointer-events: none;
@@ -136,13 +142,15 @@ input, textarea, select { font-family: inherit; font-size: 16px; }
 .search-input {
   width: 100%; background: var(--surface); border: 1px solid var(--border);
   color: var(--text); border-radius: var(--radius-sm);
-  padding: 10px 12px 10px 36px; font-size: 13.5px;
+  padding: 11px 12px 11px 38px; font-size: 14px;
+  min-height: 44px;
 }
 .search-input:focus { outline: none; border-color: var(--accent); }
 .filter-select {
   background: var(--surface); border: 1px solid var(--border);
   color: var(--text); border-radius: var(--radius-sm);
-  padding: 10px 12px; font-size: 13px; cursor: pointer;
+  padding: 11px 12px; font-size: 14px; cursor: pointer;
+  min-height: 44px;
 }
 .filter-select:focus { outline: none; border-color: var(--accent); }
 
@@ -153,9 +161,11 @@ input, textarea, select { font-family: inherit; font-size: 16px; }
   background: var(--surface); border: 1px solid var(--border-soft);
   border-radius: var(--radius); overflow: hidden;
 }
+
+/* Grid definition — columns shrink on smaller screens */
 .sub-row {
   display: grid;
-  grid-template-columns: 44px 1fr 1fr 140px 110px 32px;
+  grid-template-columns: 44px minmax(0, 1.4fr) minmax(0, 1fr) 130px 100px 32px;
   gap: 14px; align-items: center;
   padding: 14px 18px; border-bottom: 1px solid var(--border-soft);
   cursor: pointer; transition: background 0.12s;
@@ -166,7 +176,7 @@ input, textarea, select { font-family: inherit; font-size: 16px; }
 .sub-row.is-new:hover { background: rgba(124, 92, 255, 0.10); }
 
 .sub-badge {
-  width: 32px; height: 32px; border-radius: 50%;
+  width: 34px; height: 34px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 12px;
   background: var(--surface-raised); color: var(--text-dim); flex-shrink: 0;
@@ -193,6 +203,7 @@ input, textarea, select { font-family: inherit; font-size: 16px; }
 .sub-services {
   font-size: 12.5px; color: var(--text-dim);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  min-width: 0;
 }
 .sub-date { font-size: 12.5px; color: var(--text-faint); white-space: nowrap; }
 .sub-status { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
@@ -209,7 +220,7 @@ input, textarea, select { font-family: inherit; font-size: 16px; }
 }
 .empty-state strong { color: var(--text-dim); display: block; margin-bottom: 6px; font-size: 15px; }
 
-.loading-state { padding: 60px 20px; text-align: center; color: var(--text-faint); }
+.loading-state { padding: 60px 20px; text-align: center; color: var(--text-faint); display: flex; justify-content: center; }
 
 /* =========================================================
    DETAIL PANEL
@@ -240,7 +251,7 @@ input, textarea, select { font-family: inherit; font-size: 16px; }
 }
 .panel-close {
   cursor: pointer; display: flex; align-items: center; justify-content: center;
-  width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
+  width: 34px; height: 34px; border-radius: 8px; flex-shrink: 0;
   border: 1px solid var(--border); background: transparent; color: var(--text-dim);
 }
 .panel-close:hover { color: var(--text); border-color: #3A3E4A; }
@@ -253,19 +264,21 @@ input, textarea, select { font-family: inherit; font-size: 16px; }
   flex-wrap: wrap;
 }
 .panel-actions select {
-  flex: 1; min-width: 140px;
+  flex: 1 1 140px; min-width: 140px;
   background: var(--bg); border: 1px solid var(--border); color: var(--text);
-  border-radius: var(--radius-sm); padding: 9px 12px; font-size: 13px;
-  cursor: pointer;
+  border-radius: var(--radius-sm); padding: 11px 12px; font-size: 14px;
+  cursor: pointer; min-height: 44px;
 }
 .btn {
   cursor: pointer; border: none; border-radius: var(--radius-sm);
-  padding: 9px 16px; font-size: 13px; font-weight: 600;
-  display: inline-flex; align-items: center; gap: 6px;
+  padding: 11px 16px; font-size: 13.5px; font-weight: 600;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 44px;
   transition: opacity 0.15s, border-color 0.15s, color 0.15s;
 }
 .btn-primary { background: var(--accent); color: #fff; }
 .btn-primary:hover { opacity: 0.9; }
+.btn-primary:disabled { opacity: 0.6; cursor: default; }
 .btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
 .btn-danger:hover { background: rgba(255,107,107,0.08); }
 .btn-ghost { background: transparent; color: var(--text-dim); border: 1px solid var(--border); }
@@ -281,6 +294,45 @@ input, textarea, select { font-family: inherit; font-size: 16px; }
 }
 
 /* =========================================================
+   LOGIN
+   ========================================================= */
+.login-card {
+  max-width: 400px;
+  margin: 60px auto;
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  padding: 32px;
+}
+.login-card h1 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 22px;
+  margin: 0 0 6px;
+}
+.login-card > p {
+  color: var(--text-dim);
+  font-size: 13.5px;
+  margin: 0 0 24px;
+}
+.login-card label {
+  display: block;
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+  margin-top: 14px;
+}
+.login-card button {
+  margin-top: 22px;
+  width: 100%;
+}
+.login-error {
+  color: var(--danger);
+  font-size: 12.5px;
+  min-height: 16px;
+  margin: 12px 0 0;
+}
+
+/* =========================================================
    TOAST
    ========================================================= */
 .toast {
@@ -291,29 +343,86 @@ input, textarea, select { font-family: inherit; font-size: 16px; }
   box-shadow: 0 10px 30px rgba(0,0,0,0.4);
   opacity: 0; pointer-events: none;
   transition: opacity 0.2s, transform 0.2s;
+  max-width: calc(100% - 40px);
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 .toast.error { border-color: var(--danger); color: var(--danger); }
 .toast.success { border-color: var(--success); }
 
 /* =========================================================
-   RESPONSIVE
+   RESPONSIVE — TABLET (≤ 900px)
    ========================================================= */
 @media (max-width: 900px) {
-  .sub-row { grid-template-columns: 40px 1fr 130px 32px; }
-  .sub-services, .sub-status { display: none; }
+  .dash-shell { padding: 20px 18px 60px; }
+  .sub-row {
+    grid-template-columns: 40px minmax(0, 1.6fr) minmax(0, 1fr) 90px 32px;
+    gap: 12px;
+    padding: 13px 16px;
+  }
+  .sub-date { display: none; }
 }
+
+/* =========================================================
+   RESPONSIVE — MOBILE (≤ 640px)
+   ========================================================= */
 @media (max-width: 640px) {
   .dash-header { padding: 12px 14px; }
+  .dash-brand { font-size: 14px; }
   .dash-brand-sub { display: none; }
   .dash-live { display: none; }
+  .dash-back { padding: 6px 10px; font-size: 12px; }
+  .dash-refresh { width: 32px; height: 32px; }
+
   .dash-shell { padding: 16px 14px 60px; }
-  .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  .stat-card { padding: 14px; }
   .stat-value { font-size: 22px; }
-  .sub-row { grid-template-columns: 36px 1fr 32px; gap: 10px; padding: 12px 14px; }
-  .sub-date { display: none; }
+  .stat-label { font-size: 10px; }
+
+  .toolbar { gap: 8px; }
+  .search-wrap { flex: 1 1 100%; }
+  .filter-select { width: 100%; }
+
+  .sub-row {
+    grid-template-columns: 36px minmax(0, 1fr) 32px;
+    gap: 10px;
+    padding: 12px 14px;
+  }
+  .sub-services, .sub-status { display: none; }
+  .sub-name { font-size: 13.5px; }
+  .sub-sub { font-size: 11.5px; }
+
   .panel { width: 100%; }
+  .panel-head { padding: 14px 16px; }
+  .panel-title { font-size: 15px; }
+  .panel-body { padding: 16px; }
+  .panel-actions { padding: 12px 16px; }
+  .brief-pre { font-size: 12px; padding: 14px; }
+
+  .login-card { margin: 24px 0; padding: 24px 20px; }
+  .login-card h1 { font-size: 20px; }
 }
+
+/* =========================================================
+   RESPONSIVE — SMALL PHONES (≤ 380px)
+   ========================================================= */
+@media (max-width: 380px) {
+  .dash-brand { font-size: 13px; }
+  .dash-back { font-size: 11px; padding: 6px 9px; }
+  .stat-value { font-size: 20px; }
+  .sub-badge { width: 32px; height: 32px; font-size: 11px; }
+  .panel-actions select { width: 100%; flex: 1 1 100%; }
+  .panel-actions .btn-danger { width: 100%; }
+}
+
+/* =========================================================
+   REDUCED MOTION
+   ========================================================= */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

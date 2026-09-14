@@ -1,11 +1,13 @@
 /* ======================================================================= */
-/*  CONFIG — same Supabase project as the intake form                     */
+/*  CONFIG                                                                 */
 /* ======================================================================= */
 
 const SUPABASE_URL = "https://eortegvmjednbahfaflt.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVvcnRlZ3ZtamVkbmJhaGZhZmx0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzNDAzMDksImV4cCI6MjEwNDkxNjMwOX0.ANe4IgXkZHtRT-3HQ26tQ6HlPQT2qO6WhCoGJQM-rbA";
 
-const REFRESH_INTERVAL = 15000;   // 15s polling fallback
+const authClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const REFRESH_INTERVAL = 15000;
 const NOTIF_ENABLED_KEY = "ndez-notif-enabled";
 
 /* ======================================================================= */
@@ -19,12 +21,18 @@ function esc(s) {
     .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
 
-function api(path, opts) {
+async function getAccessToken() {
+  const { data: { session } } = await authClient.auth.getSession();
+  return session ? session.access_token : SUPABASE_ANON_KEY;
+}
+
+async function api(path, opts) {
+  const token = await getAccessToken();
   return fetch(SUPABASE_URL + "/rest/v1" + path, {
     ...(opts || {}),
     headers: {
       "apikey":        SUPABASE_ANON_KEY,
-      "Authorization": "Bearer " + SUPABASE_ANON_KEY,
+      "Authorization": "Bearer " + token,
       "Content-Type":  "application/json",
       ...(opts && opts.headers ? opts.headers : {}),
     },
@@ -61,19 +69,55 @@ const state = {
   error: null,
   search: "",
   filter: "all",
-  selected: null,   // id of open submission
+  selected: null,
   lastSeenIds: new Set(),
   firstLoad: true,
+  authenticated: false,
 };
+
+/* ======================================================================= */
+/*  HEADER                                                                 */
+/* ======================================================================= */
+
+const headerRightEl = document.getElementById("headerRight");
+
+function renderHeader() {
+  if (!state.authenticated) {
+    headerRightEl.innerHTML = '<a class="dash-back" href="index.html">Intake form →</a>';
+    return;
+  }
+  headerRightEl.innerHTML =
+    '<span class="dash-live"><span class="live-dot"></span> Live</span>' +
+    '<button class="dash-refresh" id="refreshBtn" title="Refresh">' +
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>' +
+    '</button>' +
+    '<button class="dash-refresh" id="signOutBtn" title="Sign out">' +
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>' +
+    '</button>' +
+    '<a class="dash-back" href="index.html">Intake form →</a>';
+
+  const rb = document.getElementById("refreshBtn");
+  if (rb) rb.addEventListener("click", async () => {
+    rb.classList.add("spinning");
+    await load();
+    setTimeout(() => rb.classList.remove("spinning"), 400);
+  });
+
+  const sb = document.getElementById("signOutBtn");
+  if (sb) sb.addEventListener("click", signOut);
+}
 
 /* ======================================================================= */
 /*  RENDER                                                                 */
 /* ======================================================================= */
 
 const appEl = document.getElementById("app");
-const refreshBtn = document.getElementById("refreshBtn");
 
 function render() {
+  renderHeader();
+
+  if (!state.authenticated) { renderLogin(); return; }
+
   if (state.loading) {
     appEl.innerHTML = '<div class="dash-shell"><div class="loading-state"><svg class="spin" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg></div></div>';
     return;
@@ -176,13 +220,11 @@ function formatDate(d) {
 
 function renderPanel() {
   if (!state.selected) {
-    return '<div class="panel-backdrop" id="panelBackdrop"></div>' +
-           '<div class="panel" id="panel"></div>';
+    return '<div class="panel-backdrop" id="panelBackdrop"></div><div class="panel" id="panel"></div>';
   }
   const s = state.submissions.find((x) => x.id === state.selected);
   if (!s) {
-    return '<div class="panel-backdrop" id="panelBackdrop"></div>' +
-           '<div class="panel" id="panel"></div>';
+    return '<div class="panel-backdrop" id="panelBackdrop"></div><div class="panel" id="panel"></div>';
   }
   const briefText = s.brief && s.brief.briefText ? s.brief.briefText : "—";
 
@@ -209,6 +251,65 @@ function renderPanel() {
 }
 
 /* ======================================================================= */
+/*  LOGIN                                                                  */
+/* ======================================================================= */
+
+function renderLogin() {
+  appEl.innerHTML =
+    '<div class="dash-shell">' +
+      '<div class="login-card">' +
+        '<h1>Ndezstudiio Dashboard</h1>' +
+        '<p>Sign in to view submissions.</p>' +
+        '<form id="loginForm">' +
+          '<label for="loginEmail">Email</label>' +
+          '<input class="search-input" type="email" id="loginEmail" required autocomplete="username" />' +
+          '<label for="loginPassword">Password</label>' +
+          '<input class="search-input" type="password" id="loginPassword" required autocomplete="current-password" />' +
+          '<button class="btn btn-primary" type="submit" id="loginBtn">Sign in</button>' +
+          '<p class="login-error" id="loginError"></p>' +
+        '</form>' +
+      '</div>' +
+    '</div>';
+
+  document.getElementById("loginForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = document.getElementById("loginEmail").value.trim();
+    const password = document.getElementById("loginPassword").value;
+    const btn = document.getElementById("loginBtn");
+    const errEl = document.getElementById("loginError");
+
+    btn.disabled = true;
+    btn.textContent = "Signing in…";
+    errEl.textContent = "";
+
+    const { error } = await authClient.auth.signInWithPassword({ email, password });
+
+    if (error) {
+      errEl.textContent = error.message;
+      btn.disabled = false;
+      btn.textContent = "Sign in";
+      return;
+    }
+
+    state.authenticated = true;
+    state.loading = true;
+    state.error = null;
+    render();
+    await load();
+  });
+}
+
+async function signOut() {
+  await authClient.auth.signOut();
+  state.submissions = [];
+  state.selected = null;
+  state.loading = false;
+  state.authenticated = false;
+  state.error = null;
+  render();
+}
+
+/* ======================================================================= */
 /*  EVENTS                                                                 */
 /* ======================================================================= */
 
@@ -218,7 +319,6 @@ function bindEvents() {
     searchInput.addEventListener("input", (e) => {
       state.search = e.target.value;
       render();
-      // Keep focus & caret after re-render
       const next = document.getElementById("searchInput");
       if (next) { next.focus(); next.setSelectionRange(next.value.length, next.value.length); }
     });
@@ -312,7 +412,7 @@ function toast(msg, kind) {
 }
 
 /* ======================================================================= */
-/*  NOTIFICATIONS (native browser)                                         */
+/*  NOTIFICATIONS                                                          */
 /* ======================================================================= */
 
 function requestNotificationPermission() {
@@ -321,7 +421,7 @@ function requestNotificationPermission() {
     Notification.requestPermission().then((perm) => {
       if (perm === "granted") {
         localStorage.setItem(NOTIF_ENABLED_KEY, "1");
-        toast("Notifications enabled — you'll be alerted on new submissions", "success");
+        toast("Notifications enabled", "success");
       }
     });
   }
@@ -330,27 +430,26 @@ function requestNotificationPermission() {
 function notifyNewSubmission(sub) {
   if (!("Notification" in window)) return;
   if (Notification.permission !== "granted") return;
-  const title = "New project brief";
-  const body = (sub.full_name || "Someone") + " · " + (sub.business_name || "") + " — " + (sub.services || "");
   try {
-    new Notification(title, { body, tag: sub.id, icon: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%237C5CFF'/%3E%3Ctext x='32' y='42' font-size='32' font-family='sans-serif' font-weight='700' fill='white' text-anchor='middle'%3EN%3C/text%3E%3C/svg%3E" });
-  } catch (e) { /* Some browsers throw if backgrounded; ignore */ }
+    new Notification("New project brief", {
+      body: (sub.full_name || "Someone") + " · " + (sub.business_name || "") + " — " + (sub.services || ""),
+      tag: sub.id,
+    });
+  } catch (e) {}
 }
 
 /* ======================================================================= */
-/*  DATA LOADING + POLLING                                                 */
+/*  DATA LOADING                                                           */
 /* ======================================================================= */
 
 async function load() {
+  if (!state.authenticated) return;
   try {
     const subs = await fetchSubmissions();
 
-    // Detect new arrivals (only after first load)
     if (!state.firstLoad) {
       subs.forEach((s) => {
-        if (!state.lastSeenIds.has(s.id)) {
-          notifyNewSubmission(s);
-        }
+        if (!state.lastSeenIds.has(s.id)) notifyNewSubmission(s);
       });
     }
 
@@ -367,28 +466,33 @@ async function load() {
   }
 }
 
-if (refreshBtn) {
-  refreshBtn.addEventListener("click", async () => {
-    refreshBtn.classList.add("spinning");
-    await load();
-    setTimeout(() => refreshBtn.classList.remove("spinning"), 400);
-  });
-}
-
 /* ======================================================================= */
 /*  BOOT                                                                   */
 /* ======================================================================= */
 
-// Ask for notification permission on first interaction (safer than autoplay-block)
 document.addEventListener("click", function once() {
   document.removeEventListener("click", once);
   requestNotificationPermission();
 }, { once: true });
 
-load();
-setInterval(load, REFRESH_INTERVAL);
+(async function boot() {
+  const { data: { session } } = await authClient.auth.getSession();
+  if (session) {
+    state.authenticated = true;
+    state.loading = true;
+    render();
+    await load();
+  } else {
+    state.authenticated = false;
+    state.loading = false;
+    render();
+  }
+})();
 
-// Also refresh when tab regains focus
+setInterval(() => {
+  if (state.authenticated) load();
+}, REFRESH_INTERVAL);
+
 document.addEventListener("visibilitychange", () => {
-  if (!document.hidden) load();
+  if (!document.hidden && state.authenticated) load();
 });
