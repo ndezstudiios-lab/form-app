@@ -4,7 +4,6 @@
 
 const AGENCY_EMAIL = "ndezstudiios@gmail.com";
 
-/* ---- Supabase credentials ---- */
 const SUPABASE_URL = "https://eortegvmjednbahfaflt.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVvcnRlZ3ZtamVkbmJhaGZhZmx0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzNDAzMDksImV4cCI6MjEwNDkxNjMwOX0.ANe4IgXkZHtRT-3HQ26tQ6HlPQT2qO6WhCoGJQM-rbA";
 
@@ -184,9 +183,6 @@ function formatAnswerValue(v) {
   return v;
 }
 
-/* ----------------------------------------------------------------------- */
-/*  BRIEF TEXT — the full readable text used in the dashboard and mailto  */
-/* ----------------------------------------------------------------------- */
 function buildBriefText({ projectId, clientInfo, selectedServices, answers, steps }) {
   const lines = [];
   const hr = "────────────────────────────────────────────";
@@ -239,11 +235,6 @@ function buildMailtoLink({ projectId, clientInfo, selectedServices, answers, ste
   return "mailto:" + AGENCY_EMAIL + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
 }
 
-/* ----------------------------------------------------------------------- */
-/*  SEND TO SUPABASE                                                       */
-/*  No more emails — this writes the submission to the database. The       */
-/*  dashboard reads it from there.                                         */
-/* ----------------------------------------------------------------------- */
 async function sendBrief({ projectId, clientInfo, selectedServices, answers, steps }) {
   const briefText = buildBriefText({ projectId, clientInfo, selectedServices, answers, steps });
   const serviceNames = selectedServices
@@ -544,11 +535,8 @@ const headerRightEl = document.getElementById("headerRight");
 function esc(s) {
   if (s === undefined || s === null) return "";
   return String(s)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
 
 function updateHeaderSave() {

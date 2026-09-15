@@ -8,7 +8,7 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const authClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const REFRESH_INTERVAL = 15000;
-const NOTIF_ENABLED_KEY = "ndez-notif-enabled";
+const NOTIF_KEY = "ndez-notif-enabled";
 
 /* ======================================================================= */
 /*  HELPERS                                                                */
@@ -73,45 +73,107 @@ const state = {
   lastSeenIds: new Set(),
   firstLoad: true,
   authenticated: false,
+  notificationsOn: false,
 };
+
+const headerRightEl = document.getElementById("headerRight");
+const appEl = document.getElementById("app");
 
 /* ======================================================================= */
 /*  HEADER                                                                 */
 /* ======================================================================= */
-
-const headerRightEl = document.getElementById("headerRight");
 
 function renderHeader() {
   if (!state.authenticated) {
     headerRightEl.innerHTML = '<a class="dash-back" href="index.html">Intake form →</a>';
     return;
   }
+
+  const bellActive = state.notificationsOn ? " active" : "";
+  const bellTitle = state.notificationsOn
+    ? "Notifications enabled"
+    : "Enable notifications";
+
   headerRightEl.innerHTML =
     '<span class="dash-live"><span class="live-dot"></span> Live</span>' +
-    '<button class="dash-refresh" id="refreshBtn" title="Refresh">' +
+    '<button class="dash-icon-btn' + bellActive + '" id="bellBtn" title="' + bellTitle + '">' +
+      '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>' +
+    '</button>' +
+    '<button class="dash-icon-btn" id="refreshBtn" title="Refresh">' +
       '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>' +
     '</button>' +
-    '<button class="dash-refresh" id="signOutBtn" title="Sign out">' +
+    '<button class="dash-icon-btn" id="signOutBtn" title="Sign out">' +
       '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>' +
     '</button>' +
     '<a class="dash-back" href="index.html">Intake form →</a>';
 
-  const rb = document.getElementById("refreshBtn");
-  if (rb) rb.addEventListener("click", async () => {
-    rb.classList.add("spinning");
+  document.getElementById("bellBtn").addEventListener("click", toggleNotifications);
+  document.getElementById("refreshBtn").addEventListener("click", async (e) => {
+    const btn = e.currentTarget;
+    btn.classList.add("spinning");
     await load();
-    setTimeout(() => rb.classList.remove("spinning"), 400);
+    setTimeout(() => btn.classList.remove("spinning"), 400);
   });
+  document.getElementById("signOutBtn").addEventListener("click", signOut);
+}
 
-  const sb = document.getElementById("signOutBtn");
-  if (sb) sb.addEventListener("click", signOut);
+/* ======================================================================= */
+/*  NOTIFICATIONS                                                          */
+/* ======================================================================= */
+
+function checkNotificationState() {
+  if (!("Notification" in window)) { state.notificationsOn = false; return; }
+  state.notificationsOn = Notification.permission === "granted";
+}
+
+async function toggleNotifications() {
+  if (!("Notification" in window)) {
+    toast("Notifications aren't supported in this browser", "error");
+    return;
+  }
+  if (Notification.permission === "granted") {
+    toast("Notifications are already enabled — check your OS settings to disable", "success");
+    return;
+  }
+  if (Notification.permission === "denied") {
+    toast("Notifications were blocked — enable them in your browser settings", "error");
+    return;
+  }
+  try {
+    const perm = await Notification.requestPermission();
+    if (perm === "granted") {
+      state.notificationsOn = true;
+      localStorage.setItem(NOTIF_KEY, "1");
+      toast("Notifications enabled", "success");
+      renderHeader();
+      // Fire a welcome notification so the user can confirm it works
+      try {
+        new Notification("Notifications enabled ✓", {
+          body: "You'll be alerted when a new brief arrives.",
+        });
+      } catch (e) {}
+    } else {
+      toast("Permission denied", "error");
+    }
+  } catch (e) {
+    toast("Couldn't request permission: " + e.message, "error");
+  }
+}
+
+function notifyNewSubmission(sub) {
+  if (!("Notification" in window)) return;
+  if (Notification.permission !== "granted") return;
+  try {
+    new Notification("New project brief", {
+      body: (sub.full_name || "Someone") + " · " + (sub.business_name || "") + " — " + (sub.services || ""),
+      tag: sub.id,
+    });
+  } catch (e) { /* Some browsers throw when document is hidden */ }
 }
 
 /* ======================================================================= */
 /*  RENDER                                                                 */
 /* ======================================================================= */
-
-const appEl = document.getElementById("app");
 
 function render() {
   renderHeader();
@@ -294,6 +356,7 @@ function renderLogin() {
     state.authenticated = true;
     state.loading = true;
     state.error = null;
+    checkNotificationState();
     render();
     await load();
   });
@@ -347,7 +410,6 @@ function bindEvents() {
 
   const closeBtn = document.getElementById("panelClose");
   if (closeBtn) closeBtn.addEventListener("click", closePanel);
-
   const backdrop = document.getElementById("panelBackdrop");
   if (backdrop) backdrop.addEventListener("click", closePanel);
 
@@ -408,34 +470,7 @@ function toast(msg, kind) {
   el.textContent = msg;
   el.className = "toast " + (kind || "") + " show";
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { el.classList.remove("show"); }, 2600);
-}
-
-/* ======================================================================= */
-/*  NOTIFICATIONS                                                          */
-/* ======================================================================= */
-
-function requestNotificationPermission() {
-  if (!("Notification" in window)) return;
-  if (Notification.permission === "default") {
-    Notification.requestPermission().then((perm) => {
-      if (perm === "granted") {
-        localStorage.setItem(NOTIF_ENABLED_KEY, "1");
-        toast("Notifications enabled", "success");
-      }
-    });
-  }
-}
-
-function notifyNewSubmission(sub) {
-  if (!("Notification" in window)) return;
-  if (Notification.permission !== "granted") return;
-  try {
-    new Notification("New project brief", {
-      body: (sub.full_name || "Someone") + " · " + (sub.business_name || "") + " — " + (sub.services || ""),
-      tag: sub.id,
-    });
-  } catch (e) {}
+  toastTimer = setTimeout(() => { el.classList.remove("show"); }, 3000);
 }
 
 /* ======================================================================= */
@@ -470,13 +505,9 @@ async function load() {
 /*  BOOT                                                                   */
 /* ======================================================================= */
 
-document.addEventListener("click", function once() {
-  document.removeEventListener("click", once);
-  requestNotificationPermission();
-}, { once: true });
-
 (async function boot() {
   const { data: { session } } = await authClient.auth.getSession();
+  checkNotificationState();
   if (session) {
     state.authenticated = true;
     state.loading = true;
