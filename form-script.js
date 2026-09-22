@@ -4,8 +4,7 @@
 
 const AGENCY_EMAIL = "ndezstudiios@gmail.com";
 
-const SUPABASE_URL = "https://eortegvmjednbahfaflt.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVvcnRlZ3ZtamVkbmJhaGZhZmx0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzNDAzMDksImV4cCI6MjEwNDkxNjMwOX0.ANe4IgXkZHtRT-3HQ26tQ6HlPQT2qO6WhCoGJQM-rbA";
+const WEB3FORMS_ACCESS_KEY = "e4f8b5d4-11b4-4449-ab57-e4a700855a49";
 
 const DRAFT_KEY = "ndez-draft-v1";
 
@@ -231,7 +230,7 @@ function buildBriefText({ projectId, clientInfo, selectedServices, answers, step
 function buildMailtoLink({ projectId, clientInfo, selectedServices, answers, steps }) {
   const subject = "New project brief — " + projectId + " — " + (clientInfo.business_name || clientInfo.full_name || "");
   let body = buildBriefText({ projectId, clientInfo, selectedServices, answers, steps });
-  if (body.length > 1800) body = body.slice(0, 1800) + "\n\n[Brief truncated — full details saved in the database.]";
+  if (body.length > 1800) body = body.slice(0, 1800) + "\n\n[Brief truncated — full details saved elsewhere.]";
   return "mailto:" + AGENCY_EMAIL + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
 }
 
@@ -239,45 +238,31 @@ async function sendBrief({ projectId, clientInfo, selectedServices, answers, ste
   const briefText = buildBriefText({ projectId, clientInfo, selectedServices, answers, steps });
   const serviceNames = selectedServices
     .map((id) => (SERVICE_CARDS.find((c) => c.id === id) || {}).name)
-    .filter(Boolean);
+    .filter(Boolean)
+    .join(", ") || "—";
 
-  const payload = {
-    project_id:    projectId,
-    status:        "new",
-    full_name:     clientInfo.full_name || "—",
-    business_name: clientInfo.business_name || "—",
-    email:         clientInfo.email || "",
-    phone:         clientInfo.phone || "—",
-    location:      clientInfo.location || "—",
-    industry:      clientInfo.industry || "—",
-    services:      serviceNames.join(", "),
-    budget:        answers.budget || "—",
-    brief: {
-      clientInfo:    clientInfo,
-      services:      selectedServices,
-      serviceNames:  serviceNames,
-      answers:       answers,
-      briefText:     briefText,
-    },
-    user_agent:    navigator.userAgent,
-  };
-
-  const res = await fetch(SUPABASE_URL + "/rest/v1/submissions", {
+  const res = await fetch("https://api.web3forms.com/submit", {
     method: "POST",
-    headers: {
-      "apikey":        SUPABASE_ANON_KEY,
-      "Authorization": "Bearer " + SUPABASE_ANON_KEY,
-      "Content-Type":  "application/json",
-      "Prefer":        "return=minimal",
-    },
-    body: JSON.stringify(payload),
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({
+      access_key: WEB3FORMS_ACCESS_KEY,
+      subject: "New project brief — " + projectId + " — " + (clientInfo.business_name || clientInfo.full_name || ""),
+      from_name: "Ndezstudiio Intake",
+      email: clientInfo.email || "",
+      "Project ID": projectId,
+      "Client name": clientInfo.full_name || "—",
+      "Business": clientInfo.business_name || "—",
+      "Email": clientInfo.email || "—",
+      "Phone": clientInfo.phone || "—",
+      "Location": clientInfo.location || "—",
+      "Industry": clientInfo.industry || "—",
+      "Services": serviceNames,
+      "Full brief": briefText,
+    }),
   });
-
-  if (!res.ok) {
-    const errText = await res.text();
-    throw new Error("Couldn't save your brief (" + res.status + "). Please try again.");
-  }
-  return true;
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.success) throw new Error(data.message || "Submission failed");
+  return data;
 }
 
 const storage = {
@@ -460,7 +445,7 @@ async function submit() {
     render();
   } catch (err) {
     state.submitState = "error";
-    state.submitError = err.message || "Could not save submission.";
+    state.submitError = err.message || "Could not send your brief.";
     render();
   }
 }
@@ -610,11 +595,11 @@ function render() {
     } else if (state.submitState === "sending") {
       icon = '<svg class="spin" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>';
       title = "Sending your brief…";
-      body = "One moment while we save it.";
+      body = "One moment while we deliver it.";
       actions = "";
     } else {
       icon = '<div class="confirm-icon error">' + xIcon(28) + '</div>';
-      title = "We couldn't save it.";
+      title = "We couldn't send it automatically.";
       body = esc(state.submitError) + ' You can send it manually instead — your email app will open pre-filled.';
       actions =
         '<button class="btn-ghost" id="mailtoBtn">Open email app</button>' +
