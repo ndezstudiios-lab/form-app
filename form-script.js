@@ -231,7 +231,7 @@ function buildBriefText({ projectId, clientInfo, selectedServices, answers, step
 function buildMailtoLink({ projectId, clientInfo, selectedServices, answers, steps }) {
   const subject = "New project brief — " + projectId + " — " + (clientInfo.business_name || clientInfo.full_name || "");
   let body = buildBriefText({ projectId, clientInfo, selectedServices, answers, steps });
-  if (body.length > 1800) body = body.slice(0, 1800) + "\n\n[Brief truncated — full details saved in the dashboard.]";
+  if (body.length > 1800) body = body.slice(0, 1800) + "\n\n[Brief truncated — full details saved in the database.]";
   return "mailto:" + AGENCY_EMAIL + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
 }
 
@@ -275,7 +275,7 @@ async function sendBrief({ projectId, clientInfo, selectedServices, answers, ste
 
   if (!res.ok) {
     const errText = await res.text();
-    throw new Error("Supabase insert failed (" + res.status + "): " + errText);
+    throw new Error("Couldn't save your brief (" + res.status + "). Please try again.");
   }
   return true;
 }
