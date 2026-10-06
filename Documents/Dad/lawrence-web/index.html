@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lawrence Ahiga - Creative Developer</title>
+    
+    <!-- Google Fonts: Inter (Sans-serif) & Playfair Display (Italic Serif) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@1,700&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* =========================================
+           1. CSS VARIABLES & RESET
+           ========================================= */
+        :root {
+            --color-black: #111111;
+            --color-white: #FFFFFF;
+            --color-purple: #6C2BD9;
+            --color-yellow: #FFD400;
+            --color-gray: #D9D9D9;
+            --font-sans: 'Inter', sans-serif;
+            --font-serif: 'Playfair Display', serif;
+            --transition-speed: 250ms;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--color-white);
+            color: var(--color-black);
+            overflow-x: hidden;
+        }
+
+        /* =========================================
+           2. HERO COMPOSITION
+           ========================================= */
+        .hero {
+            position: relative;
+            width: 100%;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end; /* Push content to the right */
+            padding: 60px;
+            background-color: var(--color-white);
+        }
+
+        /* The Dotted Border Frame */
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            right: 15px;
+            bottom: 15px;
+            border: 1px dashed rgba(17, 17, 17, 0.15); /* Subtle dashed line */
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        /* =========================================
+           3. VISUAL / BACKGROUND LAYER
+           ========================================= */
+        .hero-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            background-image: url('background.jpg');
+            background-size: cover;
+            background-position: left center; /* Keep subject on the left */
+            background-repeat: no-repeat;
+        }
+
+        /* =========================================
+           4. CODED CONTENT LAYER (Right Side)
+           ========================================= */
+        .hero-content {
+            position: relative;
+            width: 50%; /* Occupies the right half */
+            max-width: 600px;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            /* Ensure content sits in the white space */
+            margin-right: 5%; 
+        }
+
+        /* Typography: Name */
+        .name-heading {
+            font-size: clamp(3rem, 5vw, 4.5rem);
+            line-height: 1.1;
+            letter-spacing: -0.02em;
+            margin-bottom: 24px;
+            color: var(--color-black);
+            font-weight: 700;
+        }
+
+        .name-heading span {
+            font-family: var(--font-serif);
+            font-style: italic;
+            color: var(--color-purple);
+            font-weight: 700;
+            /* Slight adjustment to align serif and sans-serif baselines */
+            display: inline-block;
+            transform: translateY(4px);
+        }
+
+        /* Typography: Description */
+        .description {
+            font-size: 1.125rem;
+            line-height: 1.6;
+            color: #555555;
+            max-width: 400px;
+            margin-bottom: 40px;
+            font-weight: 400;
+        }
+
+        /* CTA Button */
+        .cta-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 32px;
+            background-color: var(--color-white);
+            color: var(--color-purple);
+            border: 2px solid var(--color-purple);
+            text-decoration: none;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 2px; /* Minimal radius */
+            transition: all var(--transition-speed) ease;
+            width: fit-content;
+        }
+
+        /* CTA Hover State */
+        .cta-button:hover, .cta-button:focus {
+            background-color: var(--color-purple);
+            color: var(--color-white);
+            outline: none;
+        }
+
+        /* Arrow animation inside button */
+        .cta-button i {
+            transition: transform var(--transition-speed) ease;
+        }
+
+        .cta-button:hover i {
+            transform: translateX(5px);
+        }
+
+        /* =========================================
+           5. SOCIAL LINKS (Bottom Right)
+           ========================================= */
+        .social-links {
+            position: absolute;
+            bottom: 50px;
+            right: 50px;
+            display: flex;
+            gap: 16px;
+            z-index: 20;
+        }
+
+        .social-links a {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            border: 1px solid var(--color-purple);
+            color: var(--color-purple);
+            font-size: 1.1rem;
+            text-decoration: none;
+            transition: all var(--transition-speed) ease;
+            background-color: transparent;
+        }
+
+        .social-links a:hover, .social-links a:focus {
+            background-color: var(--color-purple);
+            color: var(--color-white);
+            outline: none;
+            transform: translateY(-4px);
+        }
+
+        /* =========================================
+           6. RESPONSIVE DESIGN
+           ========================================= */
+        
+        /* Tablet Adjustments */
+        @media (max-width: 1024px) {
+            .hero {
+                padding: 40px;
+            }
+
+            .hero-background {
+                background-position: 20% center; /* Adjust so subject remains visible */
+            }
+
+            .hero-content {
+                width: 60%;
+                margin-right: 0;
+            }
+
+            .description {
+                font-size: 1rem;
+            }
+
+            .social-links {
+                bottom: 30px;
+                right: 30px;
+            }
+        }
+
+        /* Mobile Adjustments */
+        @media (max-width: 768px) {
+            .hero {
+                flex-direction: column;
+                justify-content: flex-end; /* Push content to bottom */
+                padding: 0;
+                min-height: 100vh;
+            }
+
+            .hero::before {
+                top: 10px; left: 10px; right: 10px; bottom: 10px;
+            }
+
+            /* Adjust background image for mobile */
+            .hero-background {
+                /* Zoom in slightly and position to show the face and some geometry */
+                background-position: 30% top;
+                background-size: cover;
+                height: 60%; /* Image only takes top 60% */
+            }
+
+            /* Reposition content to bottom 40% */
+            .hero-content {
+                width: 100%;
+                max-width: 100%;
+                height: 40%;
+                padding: 30px 24px;
+                background-color: var(--color-white); /* Solid background for readability */
+                justify-content: center;
+                margin-right: 0;
+                z-index: 15;
+                border-top: 1px solid rgba(0,0,0,0.05);
+            }
+
+            .name-heading {
+                font-size: 2.5rem;
+                margin-bottom: 12px;
+            }
+
+            .description {
+                font-size: 0.95rem;
+                max-width: 100%;
+                margin-bottom: 24px;
+            }
+
+            .cta-button {
+                padding: 14px 24px;
+                font-size: 0.95rem;
+            }
+
+            /* Move socials back into flow at the bottom */
+            .social-links {
+                position: relative;
+                bottom: auto;
+                right: auto;
+                margin-top: 30px;
+                justify-content: flex-start;
+            }
+            
+            .social-links a {
+                width: 38px;
+                height: 38px;
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <main class="hero">
+        
+        <!-- =========================================
+             VISUAL LAYER (Reference 2 Background)
+             ========================================= -->
+        <div class="hero-background" aria-hidden="true"></div>
+
+        <!-- =========================================
+             CODED CONTENT LAYER
+             ========================================= -->
+        <div class="hero-content">
+            
+            <!-- Main Heading -->
+            <h1 class="name-heading">
+                Lawrence <span>Ahiga</span>
+            </h1>
+
+            <!-- Supporting Statement -->
+            <p class="description">
+                Turning ideas into digital experiences,<br>
+                one project at a time.
+            </p>
+
+            <!-- Call to Action -->
+            <a href="#portfolio" class="cta-button">
+                Portfolio
+                <i class="fas fa-arrow-right" aria-hidden="true"></i>
+            </a>
+
+        </div>
+
+        <!-- =========================================
+             SOCIAL LINKS (Positioned Bottom Right)
+             ========================================= -->
+        <div class="social-links">
+            <a href="#" aria-label="Instagram Profile">
+                <i class="fab fa-instagram" aria-hidden="true"></i>
+            </a>
+            <a href="#" aria-label="X (formerly Twitter) Profile">
+                <i class="fab fa-x-twitter" aria-hidden="true"></i>
+            </a>
+            <a href="#" aria-label="GitHub Profile">
+                <i class="fab fa-github" aria-hidden="true"></i>
+            </a>
+            <a href="#" aria-label="LinkedIn Profile">
+                <i class="fab fa-linkedin-in" aria-hidden="true"></i>
+            </a>
+        </div>
+
+    </main>
+
+</body>
+</html>
